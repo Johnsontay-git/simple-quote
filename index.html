@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>报价单 + 发票系统 | Quotation & Invoice</title>
+<style>
+  :root{
+    --bg:#0f172a; --card:#1e293b; --card2:#334155; --line:#475569;
+    --text:#e2e8f0; --muted:#94a3b8; --accent:#22c55e; --accent2:#3b82f6;
+    --warn:#f59e0b; --danger:#ef4444; --radius:12px;
+  }
+  *{box-sizing:border-box;font-family:"Segoe UI",system-ui,-apple-system,"Microsoft YaHei",sans-serif}
+  body{margin:0;background:var(--bg);color:var(--text);font-size:14px}
+  header{background:#020617;padding:14px 22px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50}
+  header h1{font-size:18px;margin:0;font-weight:600}
+  header .logo{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-weight:700;color:#fff}
+  nav{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+  nav button{background:var(--card);color:var(--text);border:1px solid var(--line);padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px}
+  nav button.active{background:var(--accent2);border-color:var(--accent2);color:#fff}
+  main{max-width:1100px;margin:0 auto;padding:22px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:18px}
+  h2{font-size:16px;margin:0 0 14px}
+  label{display:block;font-size:12px;color:var(--muted);margin:0 0 4px}
+  input,textarea,select{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--text);padding:9px 11px;border-radius:8px;font-size:14px}
+  input:focus,textarea:focus{outline:none;border-color:var(--accent2)}
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  .row{margin-bottom:14px}
+  button.btn{background:var(--accent);color:#04210f;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px}
+  button.btn.blue{background:var(--accent2);color:#fff}
+  button.btn.gray{background:var(--card2);color:var(--text)}
+  button.btn.warn{background:var(--warn);color:#3b2600}
+  button.btn.danger{background:var(--danger);color:#fff}
+  button.btn:hover{filter:brightness(1.08)}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:10px;text-align:left;border-bottom:1px solid var(--line);font-size:13px}
+  th{color:var(--muted);font-weight:500}
+  .items td{padding:6px 6px}
+  .items input{padding:7px 8px}
+  .right{text-align:right}
+  .totbox{margin-top:14px;display:flex;justify-content:flex-end}
+  .totbox table{width:auto;min-width:280px}
+  .totbox td{border:none;padding:5px 10px}
+  .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+  .b-draft{background:#475569;color:#e2e8f0}
+  .b-sent{background:#1e3a8a;color:#bfdbfe}
+  .b-signed{background:#14532d;color:#bbf7d0}
+  .b-invoice{background:#7c2d12;color:#fed7aa}
+  .b-paid{background:#064e3b;color:#6ee7b7}
+  .muted{color:var(--muted)}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+  .toolbar .spacer{flex:1}
+  .empty{text-align:center;padding:40px;color:var(--muted)}
+  .sig-pad{background:#fff;border-radius:8px;touch-action:none;width:100%;max-width:420px;height:160px;display:block;cursor:crosshair}
+  .stat{display:flex;gap:16px;flex-wrap:wrap}
+  .stat .box{flex:1;min-width:150px;background:var(--card2);border-radius:10px;padding:16px}
+  .stat .box .n{font-size:30px;font-weight:700}
+  .stat .box .l{color:var(--muted);font-size:12px;margin-top:4px}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;place-items:center;z-index:100;padding:20px}
+  .modal.show{display:grid}
+  .modal .inner{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);max-width:560px;width:100%;padding:24px;max-height:90vh;overflow:auto}
+  .doc{background:#fff;color:#1e293b;border-radius:10px;padding:30px}
+  .doc h3{margin:0;font-size:22px;color:#0f172a}
+  .doc table{margin-top:10px}
+  .doc th,.doc td{border-bottom:1px solid #e2e8f0;color:#1e293b}
+  .doc th{color:#64748b}
+  .flex{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+  .pill{font-size:12px;color:var(--muted)}
+  a.link{color:var(--accent2)}
+  @media(max-width:640px){.g2,.g3{grid-template-columns:1fr}nav{width:100%}}
+  @media print{header,nav,.toolbar,.noprint{display:none!important}body{background:#fff}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">报</div>
+  <h1>报价单 &amp; 发票系统 <span class="muted" style="font-size:12px">Quotation &amp; Invoice</span></h1>
+  <nav>
+    <button data-view="list" class="active" onclick="nav('list')">📋 单据 Documents</button>
+    <button data-view="create" onclick="nav('create')">➕ 新建 New</button>
+    <button data-view="report" onclick="nav('report')">📊 报表 Report</button>
+    <button data-view="settings" onclick="nav('settings')">⚙️ 设置</button>
+  </nav>
+</header>
+<main>
+
+  <!-- ============ LIST ============ -->
+  <section id="view-list">
+    <div class="toolbar">
+      <input id="search" placeholder="🔍 搜索客户 / 单号  Search..." style="max-width:280px" oninput="renderList()">
+      <select id="filterType" style="max-width:170px" onchange="renderList()">
+        <option value="">全部类型 All</option>
+        <option value="quotation">报价单 Quotation</option>
+        <option value="invoice">发票 Invoice</option>
+      </select>
+      <div class="spacer"></div>
+      <button class="btn" onclick="nav('create')">➕ 新建报价单</button>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table id="listTable">
+        <thead><tr>
+          <th>单号 No.</th><th>类型</th><th>客户 Customer</th><th>日期 Date</th>
+          <th class="right">金额 Amount</th><th>状态 Status</th><th>操作 Actions</th>
+        </tr></thead>
+        <tbody id="listBody"></tbody>
+      </table>
+      <div id="listEmpty" class="empty" style="display:none">暂无单据，点击「新建」创建第一张报价单<br><span class="muted">No documents yet — click "New" to start</span></div>
+    </div>
+  </section>
+
+  <!-- ============ CREATE / EDIT ============ -->
+  <section id="view-create" style="display:none">
+    <div class="card">
+      <h2 id="formTitle">➕ 新建报价单 New Quotation</h2>
+      <input type="hidden" id="docId">
+      <div class="grid g3 row">
+        <div><label>单号 Document No.</label><input id="docNo" readonly></div>
+        <div><label>日期 Date</label><input id="docDate" type="date"></div>
+        <div><label>有效期 / 到期 Valid Until</label><input id="docValid" type="date"></div>
+      </div>
+      <div class="grid g2 row">
+        <div><label>客户名称 Customer Name *</label><input id="custName" placeholder="例如 ABC Sdn Bhd"></div>
+        <div><label>WhatsApp 号码 (含国码 e.g. 60123456789)</label><input id="custPhone" placeholder="60123456789"></div>
+      </div>
+      <div class="grid g2 row">
+        <div><label>客户邮箱 Email</label><input id="custEmail" placeholder="optional"></div>
+        <div><label>客户地址 Address</label><input id="custAddr" placeholder="optional"></div>
+      </div>
+
+      <h2 style="margin-top:10px">项目明细 Line Items</h2>
+      <table class="items"><thead><tr>
+        <th style="width:42%">描述 Description</th><th style="width:13%">数量 Qty</th>
+        <th style="width:20%">单价 Unit Price</th><th style="width:18%" class="right">小计 Subtotal</th><th></th>
+      </tr></thead><tbody id="itemsBody"></tbody></table>
+      <button class="btn gray" style="margin-top:10px" onclick="addItem()">＋ 添加一行 Add Row</button>
+
+      <div class="grid g3 row" style="margin-top:18px">
+        <div><label>折扣 Discount (%)</label><input id="discount" type="number" value="0" min="0" oninput="recalc()"></div>
+        <div><label>税率 Tax/SST (%)</label><input id="tax" type="number" value="0" min="0" oninput="recalc()"></div>
+        <div><label>币种 Currency</label><input id="currency" value="RM" oninput="recalc()"></div>
+      </div>
+      <div class="row"><label>备注 / 条款 Notes &amp; Terms</label><textarea id="notes" rows="2" placeholder="付款条款、交货期等"></textarea></div>
+
+      <div class="totbox"><table>
+        <tr><td class="muted">小计 Subtotal</td><td class="right" id="tSub">0.00</td></tr>
+        <tr><td class="muted">折扣 Discount</td><td class="right" id="tDisc">0.00</td></tr>
+        <tr><td class="muted">税 Tax</td><td class="right" id="tTax">0.00</td></tr>
+        <tr><td style="font-weight:700;font-size:16px">总计 Total</td><td class="right" id="tTotal" style="font-weight:700;font-size:16px">0.00</td></tr>
+      </table></div>
+
+      <div class="toolbar" style="margin-top:18px;margin-bottom:0">
+        <button class="btn" onclick="saveDoc()">💾 保存 Save</button>
+        <button class="btn gray" onclick="nav('list')">取消 Cancel</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ REPORT ============ -->
+  <section id="view-report" style="display:none">
+    <div class="card">
+      <h2>📊 月度报表 Monthly Report</h2>
+      <div class="toolbar">
+        <select id="repMonth" onchange="renderReport()" style="max-width:220px"></select>
+        <div class="spacer"></div>
+        <button class="btn gray noprint" onclick="window.print()">🖨️ 打印 Print</button>
+      </div>
+      <div class="stat" id="repStat"></div>
+    </div>
+    <div class="card">
+      <h2>明细 Breakdown</h2>
+      <table><thead><tr><th>单号</th><th>类型</th><th>客户</th><th>日期</th><th class="right">金额</th><th>状态</th></tr></thead>
+      <tbody id="repBody"></tbody></table>
+      <div id="repEmpty" class="empty" style="display:none">本月暂无单据 No documents this month</div>
+    </div>
+  </section>
+
+  <!-- ============ SETTINGS ============ -->
+  <section id="view-settings" style="display:none">
+    <div class="card">
+      <h2>⚙️ 公司设置 Company Settings</h2>
+      <div class="grid g2 row">
+        <div><label>公司名称 Company Name</label><input id="setName" placeholder="My Company Sdn Bhd"></div>
+        <div><label>电话 Phone</label><input id="setPhone" placeholder="03-1234 5678"></div>
+      </div>
+      <div class="grid g2 row">
+        <div><label>邮箱 Email</label><input id="setEmail"></div>
+        <div><label>地址 Address</label><input id="setAddr"></div>
+      </div>
+      <button class="btn" onclick="saveSettings()">💾 保存设置 Save</button>
+    </div>
+    <div class="card">
+      <h2>数据 Data</h2>
+      <p class="muted">数据保存在本浏览器中（localStorage）。Data is stored locally in this browser.</p>
+      <div class="toolbar">
+        <button class="btn gray" onclick="exportData()">⬇️ 导出备份 Export</button>
+        <button class="btn gray" onclick="document.getElementById('importFile').click()">⬆️ 导入 Import</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+        <button class="btn danger" onclick="clearAll()">🗑️ 清空所有 Clear All</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ VIEW / SIGN MODAL ============ -->
+<div class="modal" id="docModal">
+  <div class="inner">
+    <div id="docView"></div>
+    <div class="noprint" style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn gray" onclick="closeModal()">关闭 Close</button>
+      <button class="btn gray" onclick="window.print()">🖨️ 打印/PDF</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------------- Storage ---------------- */
+const DB_KEY='qi_docs_v1', SET_KEY='qi_settings_v1';
+let docs = JSON.parse(localStorage.getItem(DB_KEY)||'[]');
+let settings = JSON.parse(localStorage.getItem(SET_KEY)||'{}');
+function save(){localStorage.setItem(DB_KEY,JSON.stringify(docs))}
+function saveSet(){localStorage.setItem(SET_KEY,JSON.stringify(settings))}
+
+/* ---------------- Helpers ---------------- */
+const $=id=>document.getElementById(id);
+const fmt=n=>Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const todayStr=()=>new Date().toISOString().slice(0,10);
+function nextNo(type){
+  const prefix=type==='invoice'?'INV':'QUO';
+  const y=new Date().getFullYear();
+  const count=docs.filter(d=>d.type===type).length+1;
+  return `${prefix}-${y}-${String(count).padStart(4,'0')}`;
+}
+function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+
+/* ---------------- Navigation ---------------- */
+function nav(view){
+  ['list','create','report','settings'].forEach(v=>{
+    $('view-'+v).style.display = v===view?'block':'none';
+  });
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+  if(view==='list')renderList();
+  if(view==='report'){buildMonthOptions();renderReport();}
+  if(view==='settings')loadSettings();
+  if(view==='create' && !$('docId').value) resetForm();
+}
+
+/* ---------------- Form ---------------- */
+function resetForm(){
+  $('formTitle').textContent='➕ 新建报价单 New Quotation';
+  $('docId').value='';
+  $('docNo').value=nextNo('quotation');
+  $('docDate').value=todayStr();
+  const v=new Date();v.setDate(v.getDate()+30);
+  $('docValid').value=v.toISOString().slice(0,10);
+  $('custName').value='';$('custPhone').value='';$('custEmail').value='';$('custAddr').value='';
+  $('discount').value=0;$('tax').value=0;$('currency').value='RM';$('notes').value='';
+  $('itemsBody').innerHTML='';addItem();recalc();
+}
+function addItem(desc='',qty=1,price=0){
+  const tr=document.createElement('tr');
+  tr.innerHTML=`
+    <td><input class="i-desc" value="${esc(desc)}" placeholder="产品/服务描述"></td>
+    <td><input class="i-qty" type="number" min="0" value="${qty}" oninput="recalc()"></td>
+    <td><input class="i-price" type="number" min="0" step="0.01" value="${price}" oninput="recalc()"></td>
+    <td class="right i-sub">0.00</td>
+    <td><button class="btn danger" style="padding:5px 9px" onclick="this.closest('tr').remove();recalc()">✕</button></td>`;
+  $('itemsBody').appendChild(tr);
+}
+function collectItems(){
+  return [...$('itemsBody').querySelectorAll('tr')].map(tr=>({
+    desc:tr.querySelector('.i-desc').value,
+    qty:+tr.querySelector('.i-qty').value||0,
+    price:+tr.querySelector('.i-price').value||0
+  }));
+}
+function recalc(){
+  let sub=0;
+  $('itemsBody').querySelectorAll('tr').forEach(tr=>{
+    const q=+tr.querySelector('.i-qty').value||0, p=+tr.querySelector('.i-price').value||0;
+    const s=q*p; sub+=s; tr.querySelector('.i-sub').textContent=fmt(s);
+  });
+  const disc=sub*(+$('discount').value||0)/100;
+  const taxed=(sub-disc)*(+$('tax').value||0)/100;
+  const total=sub-disc+taxed;
+  $('tSub').textContent=fmt(sub);$('tDisc').textContent='-'+fmt(disc);
+  $('tTax').textContent=fmt(taxed);$('tTotal').textContent=$('currency').value+' '+fmt(total);
+  return {sub,disc,taxed,total};
+}
+function saveDoc(){
+  if(!$('custName').value.trim()){alert('请填写客户名称 Please enter customer name');return;}
+  const t=recalc();
+  const id=$('docId').value||('d'+Date.now());
+  const existing=docs.find(d=>d.id===id);
+  const doc={
+    id, type: existing?existing.type:'quotation',
+    no:$('docNo').value, date:$('docDate').value, valid:$('docValid').value,
+    customer:{name:$('custName').value,phone:$('custPhone').value.replace(/\D/g,''),email:$('custEmail').value,addr:$('custAddr').value},
+    items:collectItems(), discount:+$('discount').value||0, tax:+$('tax').value||0,
+    currency:$('currency').value, notes:$('notes').value,
+    totals:t,
+    status: existing?existing.status:'draft',
+    signature: existing?existing.signature:null,
+    signedAt: existing?existing.signedAt:null,
+    sentAt: existing?existing.sentAt:null,
+    createdAt: existing?existing.createdAt:new Date().toISOString(),
+    linkedNo: existing?existing.linkedNo:null
+  };
+  if(existing){Object.assign(existing,doc);}else{docs.push(doc);}
+  save();nav('list');
+}
+function editDoc(id){
+  const d=docs.find(x=>x.id===id);if(!d)return;
+  nav('create');
+  $('formTitle').textContent=(d.type==='invoice'?'✏️ 编辑发票 Edit Invoice':'✏️ 编辑报价单 Edit Quotation');
+  $('docId').value=d.id;$('docNo').value=d.no;$('docDate').value=d.date;$('docValid').value=d.valid;
+  $('custName').value=d.customer.name;$('custPhone').value=d.customer.phone;
+  $('custEmail').value=d.customer.email;$('custAddr').value=d.customer.addr;
+  $('discount').value=d.discount;$('tax').value=d.tax;$('currency').value=d.currency;$('notes').value=d.notes||'';
+  $('itemsBody').innerHTML='';d.items.forEach(it=>addItem(it.desc,it.qty,it.price));recalc();
+}
+
+/* ---------------- List ---------------- */
+function renderList(){
+  const q=($('search')?.value||'').toLowerCase();
+  const ft=$('filterType')?.value||'';
+  const body=$('listBody');body.innerHTML='';
+  const rows=docs.filter(d=>(!ft||d.type===ft) &&
+    (d.no.toLowerCase().includes(q)||d.customer.name.toLowerCase().includes(q)))
+    .sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+  $('listEmpty').style.display=rows.length?'none':'block';
+  rows.forEach(d=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td><b>${esc(d.no)}</b></td>
+      <td>${d.type==='invoice'?'🧾 发票':'📝 报价单'}</td>
+      <td>${esc(d.customer.name)}</td>
+      <td>${d.date}</td>
+      <td class="right">${esc(d.currency)} ${fmt(d.totals.total)}</td>
+      <td>${statusBadge(d)}</td>
+      <td><div style="display:flex;gap:5px;flex-wrap:wrap">
+        <button class="btn blue" style="padding:6px 10px" onclick="viewDoc('${d.id}')">查看</button>
+        <button class="btn gray" style="padding:6px 10px" onclick="editDoc('${d.id}')">编辑</button>
+        ${d.customer.phone?`<button class="btn" style="padding:6px 10px" onclick="sendWA('${d.id}')">📱 WhatsApp</button>`:''}
+        ${d.type==='quotation'?`<button class="btn warn" style="padding:6px 10px" onclick="convert('${d.id}')">→ 发票</button>`:''}
+        <button class="btn danger" style="padding:6px 10px" onclick="delDoc('${d.id}')">✕</button>
+      </div></td>`;
+    body.appendChild(tr);
+  });
+}
+function statusBadge(d){
+  const m={draft:['b-draft','草稿 Draft'],sent:['b-sent','已发送 Sent'],signed:['b-signed','已签名 Signed'],
+    invoice:['b-invoice','发票 Invoice'],paid:['b-paid','已付款 Paid']};
+  let s=d.status; if(d.type==='invoice'&&s!=='paid')s='invoice';
+  const [cls,txt]=m[s]||m.draft;
+  return `<span class="badge ${cls}">${txt}</span>`;
+}
+function delDoc(id){if(confirm('确定删除此单据? Delete this document?')){docs=docs.filter(d=>d.id!==id);save();renderList();}}
+
+/* ---------------- Convert to Invoice ---------------- */
+function convert(id){
+  const d=docs.find(x=>x.id===id);if(!d)return;
+  if(!confirm('将此报价单转为发票? Convert this quotation to an invoice?'))return;
+  const inv=JSON.parse(JSON.stringify(d));
+  inv.id='d'+Date.now();inv.type='invoice';inv.no=nextNo('invoice');
+  inv.date=todayStr();inv.status='invoice';inv.createdAt=new Date().toISOString();
+  inv.linkedNo=d.no; d.linkedNo=inv.no;
+  docs.push(inv);save();
+  alert('已生成发票 Invoice created: '+inv.no);
+  nav('list');
+}
+
+/* ---------------- WhatsApp ---------------- */
+function sendWA(id){
+  const d=docs.find(x=>x.id===id);if(!d)return;
+  const co=settings.name||'我们 / Our Company';
+  const docType=d.type==='invoice'?'发票 Invoice':'报价单 Quotation';
+  const lines=d.items.map(it=>`• ${it.desc} x${it.qty} = ${d.currency}${fmt(it.qty*it.price)}`).join('\n');
+  const signUrl=location.href.split('#')[0]+'#sign='+d.id;
+  const msg=
+`您好 ${d.customer.name}，
+这是来自 ${co} 的${docType}：
+
+单号 No: ${d.no}
+日期 Date: ${d.date}
+${lines}
+
+总计 Total: ${d.currency} ${fmt(d.totals.total)}
+
+${d.type==='quotation'?'请点击以下链接查看并电子签名确认：\nPlease review & e-sign:\n'+signUrl:'感谢您的惠顾！Thank you for your business.'}`;
+  if(d.status==='draft'){d.status='sent';d.sentAt=new Date().toISOString();save();renderList();}
+  const url=`https://wa.me/${d.customer.phone}?text=${encodeURIComponent(msg)}`;
+  window.open(url,'_blank');
+}
+
+/* ---------------- View / Sign Doc ---------------- */
+let sigCtx=null,sigDrawing=false,sigDirty=false,sigDocId=null;
+function viewDoc(id){
+  const d=docs.find(x=>x.id===id);if(!d)return;
+  sigDocId=id;
+  const co=settings;
+  const itemRows=d.items.map((it,i)=>`<tr><td>${i+1}</td><td>${esc(it.desc)}</td><td class="right">${it.qty}</td>
+    <td class="right">${fmt(it.price)}</td><td class="right">${fmt(it.qty*it.price)}</td></tr>`).join('');
+  const isQuote=d.type==='quotation';
+  $('docView').innerHTML=`
+    <div class="doc">
+      <div class="flex">
+        <div>
+          <h3>${isQuote?'报价单 QUOTATION':'发票 INVOICE'}</h3>
+          <div style="color:#64748b;margin-top:4px">${esc(co.name||'')}</div>
+          <div style="color:#94a3b8;font-size:12px">${esc(co.phone||'')} ${esc(co.email||'')}</div>
+          <div style="color:#94a3b8;font-size:12px">${esc(co.addr||'')}</div>
+        </div>
+        <div class="right">
+          <div><b>${esc(d.no)}</b></div>
+          <div style="color:#64748b;font-size:12px">日期 ${d.date}</div>
+          ${isQuote?`<div style="color:#64748b;font-size:12px">有效期 ${d.valid||'-'}</div>`:''}
+          ${d.linkedNo?`<div style="color:#94a3b8;font-size:11px">关联 ${esc(d.linkedNo)}</div>`:''}
+        </div>
+      </div>
+      <div style="margin-top:14px;color:#475569"><b>客户 Bill To:</b> ${esc(d.customer.name)}
+        ${d.customer.phone?' · '+esc(d.customer.phone):''}<br>
+        <span style="font-size:12px;color:#94a3b8">${esc(d.customer.email||'')} ${esc(d.customer.addr||'')}</span></div>
+      <table><thead><tr><th>#</th><th>描述 Description</th><th class="right">数量</th><th class="right">单价</th><th class="right">小计</th></tr></thead>
+      <tbody>${itemRows}</tbody></table>
+      <div style="display:flex;justify-content:flex-end;margin-top:12px">
+        <table style="width:auto;min-width:240px">
+          <tr><td style="color:#64748b">小计 Subtotal</td><td class="right">${d.currency} ${fmt(d.totals.sub)}</td></tr>
+          <tr><td style="color:#64748b">折扣 Discount</td><td class="right">-${d.currency} ${fmt(d.totals.disc)}</td></tr>
+          <tr><td style="color:#64748b">税 Tax</td><td class="right">${d.currency} ${fmt(d.totals.taxed)}</td></tr>
+          <tr><td style="font-weight:700">总计 Total</td><td class="right" style="font-weight:700">${d.currency} ${fmt(d.totals.total)}</td></tr>
+        </table>
+      </div>
+      ${d.notes?`<div style="margin-top:12px;font-size:12px;color:#64748b"><b>备注 Notes:</b><br>${esc(d.notes).replace(/\n/g,'<br>')}</div>`:''}
+      <div style="margin-top:20px;border-top:1px dashed #cbd5e1;padding-top:14px">
+        <b style="color:#475569">客户签名 Customer Signature</b>
+        ${d.signature
+          ? `<div><img src="${d.signature}" style="max-width:300px;border-bottom:1px solid #94a3b8"><div style="font-size:11px;color:#94a3b8">已于 ${new Date(d.signedAt).toLocaleString()} 签署</div></div>`
+          : (isQuote
+            ? `<div class="noprint">
+                <canvas id="sigPad" class="sig-pad"></canvas>
+                <div style="margin-top:8px;display:flex;gap:8px">
+                  <button class="btn" onclick="saveSig()">✍️ 确认签名 Confirm Signature</button>
+                  <button class="btn gray" onclick="clearSig()">清除 Clear</button>
+                </div>
+                <div style="font-size:11px;color:#94a3b8;margin-top:4px">用鼠标或手指在白框内签名 · Sign with mouse or finger</div>
+              </div>`
+            : `<div style="color:#94a3b8;font-size:12px">—</div>`)}
+      </div>
+    </div>`;
+  $('docModal').classList.add('show');
+  if(isQuote && !d.signature) setTimeout(initSig,50);
+}
+function initSig(){
+  const c=$('sigPad');if(!c)return;
+  const r=c.getBoundingClientRect();c.width=r.width;c.height=r.height;
+  sigCtx=c.getContext('2d');sigCtx.strokeStyle='#0f172a';sigCtx.lineWidth=2.2;sigCtx.lineCap='round';
+  sigDirty=false;
+  const pos=e=>{const b=c.getBoundingClientRect();const t=e.touches?e.touches[0]:e;return{x:t.clientX-b.left,y:t.clientY-b.top}};
+  const start=e=>{sigDrawing=true;const p=pos(e);sigCtx.beginPath();sigCtx.moveTo(p.x,p.y);e.preventDefault()};
+  const move=e=>{if(!sigDrawing)return;const p=pos(e);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();sigDirty=true;e.preventDefault()};
+  const end=()=>sigDrawing=false;
+  c.onmousedown=start;c.onmousemove=move;c.onmouseup=end;c.onmouseleave=end;
+  c.ontouchstart=start;c.ontouchmove=move;c.ontouchend=end;
+}
+function clearSig(){if(sigCtx){sigCtx.clearRect(0,0,$('sigPad').width,$('sigPad').height);sigDirty=false;}}
+function saveSig(){
+  if(!sigDirty){alert('请先签名 Please sign first');return;}
+  const d=docs.find(x=>x.id===sigDocId);if(!d)return;
+  d.signature=$('sigPad').toDataURL('image/png');
+  d.signedAt=new Date().toISOString();d.status='signed';
+  save();alert('签名已保存 Signature saved ✔');viewDoc(sigDocId);renderList();
+}
+function closeModal(){$('docModal').classList.remove('show')}
+
+/* ---------------- Report ---------------- */
+function buildMonthOptions(){
+  const sel=$('repMonth');const set=new Set(docs.map(d=>d.date.slice(0,7)));
+  set.add(todayStr().slice(0,7));
+  const arr=[...set].sort().reverse();
+  sel.innerHTML=arr.map(m=>`<option value="${m}">${m}</option>`).join('');
+}
+function renderReport(){
+  const m=$('repMonth').value||todayStr().slice(0,7);
+  const rows=docs.filter(d=>d.date.slice(0,7)===m);
+  const quo=rows.filter(d=>d.type==='quotation');
+  const inv=rows.filter(d=>d.type==='invoice');
+  const sum=a=>a.reduce((s,d)=>s+d.totals.total,0);
+  const cur=docs[0]?.currency||'RM';
+  $('repStat').innerHTML=`
+    <div class="box"><div class="n">${quo.length}</div><div class="l">📝 报价单数量 Quotations</div></div>
+    <div class="box"><div class="n">${inv.length}</div><div class="l">🧾 发票数量 Invoices</div></div>
+    <div class="box"><div class="n" style="font-size:22px">${cur} ${fmt(sum(quo))}</div><div class="l">报价总额 Quotation Value</div></div>
+    <div class="box"><div class="n" style="font-size:22px">${cur} ${fmt(sum(inv))}</div><div class="l">发票总额 Invoice Value</div></div>
+    <div class="box"><div class="n">${quo.filter(d=>d.status==='signed').length}</div><div class="l">✍️ 已签名 Signed</div></div>`;
+  const body=$('repBody');body.innerHTML='';
+  $('repEmpty').style.display=rows.length?'none':'block';
+  rows.sort((a,b)=>a.date.localeCompare(b.date)).forEach(d=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${esc(d.no)}</td><td>${d.type==='invoice'?'🧾 发票':'📝 报价单'}</td>
+      <td>${esc(d.customer.name)}</td><td>${d.date}</td>
+      <td class="right">${esc(d.currency)} ${fmt(d.totals.total)}</td><td>${statusBadge(d)}</td>`;
+    body.appendChild(tr);
+  });
+}
+
+/* ---------------- Settings & Data ---------------- */
+function loadSettings(){
+  $('setName').value=settings.name||'';$('setPhone').value=settings.phone||'';
+  $('setEmail').value=settings.email||'';$('setAddr').value=settings.addr||'';
+}
+function saveSettings(){
+  settings={name:$('setName').value,phone:$('setPhone').value,email:$('setEmail').value,addr:$('setAddr').value};
+  saveSet();alert('设置已保存 Saved ✔');
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify({docs,settings},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='quotation-invoice-backup-'+todayStr()+'.json';a.click();
+}
+function importData(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(d.docs){docs=d.docs;settings=d.settings||{};save();saveSet();alert('导入成功 Imported ✔');nav('list');}}catch{alert('文件无效 Invalid file')}};
+  r.readAsText(f);
+}
+function clearAll(){if(confirm('清空所有数据? 此操作不可恢复! Clear ALL data? Cannot be undone!')){docs=[];localStorage.removeItem(DB_KEY);renderList();}}
+
+/* ---------------- Deep link (#sign=id) for WhatsApp recipients ---------------- */
+function checkHash(){
+  const h=location.hash;
+  if(h.startsWith('#sign=')){const id=h.slice(6);if(docs.find(d=>d.id===id)){viewDoc(id);}}
+}
+
+/* ---------------- Init ---------------- */
+renderList();checkHash();
+window.addEventListener('hashchange',checkHash);
+</script>
+</body>
+</html>
