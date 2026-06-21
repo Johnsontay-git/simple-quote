@@ -56,7 +56,8 @@
   .sig-pad{background:#fff;border:2px dashed #94a3b8;border-radius:8px;touch-action:none;width:100%;max-width:420px;height:170px;display:block;cursor:crosshair}
   .sig-wrap{position:relative;max-width:420px}
   .sig-wrap .sig-hint{position:absolute;left:0;right:0;bottom:10px;text-align:center;color:#cbd5e1;font-size:12px;pointer-events:none}
-  @media(max-width:760px){.sig-pad{height:200px}}
+  .sig-actions{position:sticky;bottom:0;display:flex;gap:8px;margin-top:10px;padding:10px 0;background:#fff;z-index:6;border-top:1px solid #e2e8f0}
+  @media(max-width:760px){.sig-pad{height:180px}}
   .stat{display:flex;gap:16px;flex-wrap:wrap}
   .stat .box{flex:1;min-width:150px;background:var(--card2);border-radius:10px;padding:16px}
   .stat .box .n{font-size:30px;font-weight:700}
@@ -464,11 +465,11 @@ function viewDoc(id){
           : (isQuote
             ? `<div class="noprint">
                 <div class="sig-wrap"><canvas id="sigPad" class="sig-pad"></canvas><div class="sig-hint">✕ 请在此区域内签名 sign here ✕</div></div>
-                <div style="margin-top:8px;display:flex;gap:8px">
-                  <button class="btn" onclick="saveSig()">✍️ 确认签名 Confirm Signature</button>
+                <div style="font-size:11px;color:#94a3b8;margin-top:4px">用鼠标或手指在白框内签名 · Sign with mouse or finger</div>
+                <div class="sig-actions">
+                  <button class="btn" style="flex:1" onclick="saveSig()">✍️ 确认签名 Confirm</button>
                   <button class="btn gray" onclick="clearSig()">清除 Clear</button>
                 </div>
-                <div style="font-size:11px;color:#94a3b8;margin-top:4px">用鼠标或手指在白框内签名 · Sign with mouse or finger</div>
               </div>`
             : `<div style="color:#94a3b8;font-size:12px">—</div>`)}
       </div>
