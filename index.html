@@ -147,7 +147,7 @@
       </div>
       <div class="grid g2 row">
         <div><label>客户名称 Customer Name *</label><input id="custName" placeholder="例如 ABC Sdn Bhd"></div>
-        <div><label>WhatsApp 号码 (含国码 e.g. 60123456789)</label><input id="custPhone" placeholder="60123456789"></div>
+        <div><label>WhatsApp 号码 (马来西亚本地号即可，如 012-345 6789)</label><input id="custPhone" placeholder="0123456789"></div>
       </div>
       <div class="grid g2 row">
         <div><label>客户邮箱 Email</label><input id="custEmail" placeholder="optional"></div>
@@ -258,6 +258,15 @@ function nextNo(type){
   return `${prefix}-${y}-${String(count).padStart(4,'0')}`;
 }
 function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+// Default country = Malaysia (60). Accepts local input like 012-345 6789 and returns 60123456789.
+function normalizePhone(raw){
+  let n=(raw||'').replace(/\D/g,'');
+  if(!n)return '';
+  if(n.startsWith('60'))return n;              // already has Malaysia code
+  if(n.startsWith('0'))return '60'+n.slice(1); // local 01x... -> 601x...
+  if(n.startsWith('1'))return '60'+n;          // typed 1x... without leading 0
+  return n;                                     // some other country code already
+}
 
 /* ---------------- Navigation ---------------- */
 function nav(view){
@@ -321,7 +330,7 @@ function saveDoc(){
   const doc={
     id, type: existing?existing.type:'quotation',
     no:$('docNo').value, date:$('docDate').value, valid:$('docValid').value,
-    customer:{name:$('custName').value,phone:$('custPhone').value.replace(/\D/g,''),email:$('custEmail').value,addr:$('custAddr').value},
+    customer:{name:$('custName').value,phone:normalizePhone($('custPhone').value),email:$('custEmail').value,addr:$('custAddr').value},
     items:collectItems(), discount:+$('discount').value||0, tax:+$('tax').value||0,
     currency:$('currency').value, notes:$('notes').value,
     totals:t,
@@ -416,7 +425,7 @@ ${lines}
 ${d.type==='quotation'?'请点击以下链接查看并电子签名确认：\nPlease review & e-sign:\n'+signUrl:'感谢您的惠顾！Thank you for your business.'}`;
   if(d.status==='draft'){d.status='sent';d.sentAt=new Date().toISOString();save();renderList();}
   // Use a real wa.me anchor tap so mobile browsers hand off to WhatsApp (window.open is blocked on mobile)
-  const url=`https://wa.me/${d.customer.phone}?text=${encodeURIComponent(msg)}`;
+  const url=`https://wa.me/${normalizePhone(d.customer.phone)}?text=${encodeURIComponent(msg)}`;
   const a=document.createElement('a');
   a.href=url; a.target='_blank'; a.rel='noopener';
   document.body.appendChild(a); a.click(); a.remove();
