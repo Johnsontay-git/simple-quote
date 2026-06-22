@@ -415,8 +415,11 @@ ${lines}
 
 ${d.type==='quotation'?'请点击以下链接查看并电子签名确认：\nPlease review & e-sign:\n'+signUrl:'感谢您的惠顾！Thank you for your business.'}`;
   if(d.status==='draft'){d.status='sent';d.sentAt=new Date().toISOString();save();renderList();}
+  // Use a real wa.me anchor tap so mobile browsers hand off to WhatsApp (window.open is blocked on mobile)
   const url=`https://wa.me/${d.customer.phone}?text=${encodeURIComponent(msg)}`;
-  window.open(url,'_blank');
+  const a=document.createElement('a');
+  a.href=url; a.target='_blank'; a.rel='noopener';
+  document.body.appendChild(a); a.click(); a.remove();
 }
 
 /* ---------------- View / Sign Doc ---------------- */
